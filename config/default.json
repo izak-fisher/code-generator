@@ -1,0 +1,55 @@
+{
+  "pneumatic": {
+    "apiUrl": "https://your-instance.pneumatic.app/api/v2",
+    "apiKey": "your-api-key-here"
+  },
+  "webhook": {
+    "port": 3000,
+    "path": "/webhook"
+  },
+  "trigger": {
+    "templateId": null,
+    "taskApiName": "task-1"
+  },
+  "output": {
+    "fieldApiName": "field-generated-code"
+  },
+  "segments": [
+    {
+      "name": "purpose",
+      "type": "single",
+      "fieldApiName": "field-purpose-code",
+      "delimiter": "-",
+      "extractIndex": 0
+    },
+    {
+      "name": "project",
+      "type": "single",
+      "fieldApiName": "field-project-code",
+      "delimiter": "-",
+      "extractIndex": 0
+    },
+    {
+      "name": "productCategory",
+      "type": "composite",
+      "entries": [
+        { "codeFieldApiName": "field-product-cat-1", "percentFieldApiName": "field-product-pct-1" },
+        { "codeFieldApiName": "field-product-cat-2", "percentFieldApiName": "field-product-pct-2" },
+        { "codeFieldApiName": "field-product-cat-3", "percentFieldApiName": "field-product-pct-3" }
+      ],
+      "delimiter": "-",
+      "extractIndex": 0
+    },
+    {
+      "name": "advertisingCode",
+      "type": "composite",
+      "entries": [
+        { "codeFieldApiName": "field-ad-code-1", "percentFieldApiName": "field-ad-pct-1" },
+        { "codeFieldApiName": "field-ad-code-2", "percentFieldApiName": "field-ad-pct-2" },
+        { "codeFieldApiName": "field-ad-code-3", "percentFieldApiName": "field-ad-pct-3" }
+      ],
+      "delimiter": "-",
+      "extractIndex": 0
+    }
+  ]
+}

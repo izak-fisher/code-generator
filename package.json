@@ -1,0 +1,14 @@
+{
+  "name": "yamaha-code-generator",
+  "version": "1.0.0",
+  "description": "Generates project codes from Pneumatic workflow task data",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "bun src/index.js",
+    "dev": "bun --watch src/index.js",
+    "test": "bun test src/**/*.test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
