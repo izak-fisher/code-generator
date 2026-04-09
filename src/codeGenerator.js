@@ -24,12 +24,18 @@ function buildSegment(segment, fieldValues) {
   if (segment.type === 'composite') {
     const parts = [];
     for (const entry of segment.entries) {
-      const codeRaw = fieldValues[entry.codeFieldApiName];
       const pctRaw = fieldValues[entry.percentFieldApiName];
+      if (pctRaw == null) continue;
 
-      if (codeRaw == null || pctRaw == null) continue;
+      let code;
+      if (entry.fixedCode) {
+        code = entry.fixedCode;
+      } else {
+        const codeRaw = fieldValues[entry.codeFieldApiName];
+        if (codeRaw == null) continue;
+        code = extractCode(codeRaw, segment.delimiter, segment.extractIndex);
+      }
 
-      const code = extractCode(codeRaw, segment.delimiter, segment.extractIndex);
       const pct = Math.round(Number(pctRaw));
 
       if (!code || isNaN(pct) || pct <= 0) continue;

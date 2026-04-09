@@ -8,24 +8,24 @@
     "path": "/webhook"
   },
   "trigger": {
-    "templateId": null,
-    "taskApiName": "task-1"
+    "templateId": 26,
+    "taskApiName": "task-5f78eb"
   },
   "output": {
-    "fieldApiName": "field-generated-code"
+    "fieldApiName": "field-0b8929"
   },
   "segments": [
     {
       "name": "purpose",
       "type": "single",
-      "fieldApiName": "field-purpose-code",
+      "fieldApiName": "field-e4dae9",
       "delimiter": "-",
       "extractIndex": 0
     },
     {
       "name": "project",
       "type": "single",
-      "fieldApiName": "field-project-code",
+      "fieldApiName": "field-31fb02",
       "delimiter": "-",
       "extractIndex": 0
     },
@@ -33,20 +33,22 @@
       "name": "productCategory",
       "type": "composite",
       "entries": [
-        { "codeFieldApiName": "field-product-cat-1", "percentFieldApiName": "field-product-pct-1" },
-        { "codeFieldApiName": "field-product-cat-2", "percentFieldApiName": "field-product-pct-2" },
-        { "codeFieldApiName": "field-product-cat-3", "percentFieldApiName": "field-product-pct-3" }
+        { "codeFieldApiName": "field-4ccb17", "percentFieldApiName": "field-d50954" },
+        { "codeFieldApiName": "field-9fa8e9", "percentFieldApiName": "field-b80b1d" },
+        { "codeFieldApiName": "field-177ac0", "percentFieldApiName": "field-9838bd" },
+        { "codeFieldApiName": "field-e9abc0", "percentFieldApiName": "field-fe1801" }
       ],
       "delimiter": "-",
       "extractIndex": 0
     },
     {
-      "name": "advertisingCode",
+      "name": "mediaType",
       "type": "composite",
       "entries": [
-        { "codeFieldApiName": "field-ad-code-1", "percentFieldApiName": "field-ad-pct-1" },
-        { "codeFieldApiName": "field-ad-code-2", "percentFieldApiName": "field-ad-pct-2" },
-        { "codeFieldApiName": "field-ad-code-3", "percentFieldApiName": "field-ad-pct-3" }
+        { "fixedCode": "NPD", "percentFieldApiName": "field-6cdbcf" },
+        { "fixedCode": "PD", "percentFieldApiName": "field-e35aa5" },
+        { "fixedCode": "NPND", "percentFieldApiName": "field-3b5990" },
+        { "fixedCode": "PND", "percentFieldApiName": "field-29a837" }
       ],
       "delimiter": "-",
       "extractIndex": 0
