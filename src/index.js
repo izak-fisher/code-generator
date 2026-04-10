@@ -18,7 +18,7 @@ app.get('/health', (_req, res) => {
 // Pneumatic webhook endpoint
 app.post(config.webhook.path, async (req, res) => {
   try {
-    console.log('[code-generator] Webhook received:', JSON.stringify(req.body?.hook, null, 2));
+    console.log('[code-generator] Webhook received:', req.body.hook?.event, '- task:', req.body.task?.api_name);
     const result = await handleWebhook(req.body);
     console.log('[code-generator] Result:', JSON.stringify(result));
     res.json(result);

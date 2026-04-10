@@ -4,35 +4,36 @@ const { generateCode } = require('./codeGenerator');
  * Collects all field values from a workflow's kickoff and completed tasks.
  * Fields from later tasks override earlier ones if api_names collide.
  */
-function collectFieldValues(webhook) {
+function collectFieldValues(payload) {
   const values = {};
+  const workflow = payload.task?.workflow;
 
   // Kickoff fields (initial form submission)
-  const kickoff = webhook.workflow?.kickoff;
+  const kickoff = workflow?.kickoff;
   if (kickoff?.output) {
     for (const field of kickoff.output) {
-      if (field.api_name && field.value != null) {
+      if (field.api_name && field.value != null && field.value !== '') {
         values[field.api_name] = field.value;
       }
     }
   }
 
   // Task output fields from all completed tasks in the workflow
-  const tasks = webhook.workflow?.tasks || [];
+  const tasks = workflow?.tasks || [];
   for (const task of tasks) {
     const fields = task.output || [];
     for (const field of fields) {
-      if (field.api_name && field.value != null) {
+      if (field.api_name && field.value != null && field.value !== '') {
         values[field.api_name] = field.value;
       }
     }
   }
 
   // Also check the top-level task in the webhook payload
-  const webhookTask = webhook.task;
+  const webhookTask = payload.task;
   if (webhookTask?.output) {
     for (const field of webhookTask.output) {
-      if (field.api_name && field.value != null) {
+      if (field.api_name && field.value != null && field.value !== '') {
         values[field.api_name] = field.value;
       }
     }
@@ -50,9 +51,10 @@ function createWebhookHandler(config, pneumaticClient) {
       return { skipped: true, reason: `Ignoring event: ${event}` };
     }
 
-    // Check template match
-    const workflowTemplateId = payload.workflow?.template?.id
-      ?? payload.workflow?.template_id;
+    // Check template match — workflow is nested under task
+    const workflow = payload.task?.workflow;
+    const workflowTemplateId = workflow?.template?.id
+      ?? workflow?.template_id;
 
     if (trigger.templateId != null && workflowTemplateId !== trigger.templateId) {
       return { skipped: true, reason: `Template ${workflowTemplateId} does not match ${trigger.templateId}` };
@@ -72,17 +74,19 @@ function createWebhookHandler(config, pneumaticClient) {
     const code = generateCode(segments, fieldValues);
     console.log('[code-generator] Generated code:', code);
 
-    // Find the current (next) task to complete with the generated code
-    const currentTaskId = payload.workflow?.current_task?.id;
-    if (!currentTaskId) {
-      throw new Error('No current task found in workflow — the workflow may have already completed');
+    // Find the "Generate Code" task to complete with the generated code
+    const tasks = workflow?.tasks || [];
+    const codeTask = tasks.find(t => t.api_name === output.taskApiName);
+    const codeTaskId = codeTask?.id;
+    if (!codeTaskId) {
+      throw new Error(`Task "${output.taskApiName}" not found in workflow tasks`);
     }
 
-    await pneumaticClient.completeTask(currentTaskId, {
+    await pneumaticClient.completeTask(codeTaskId, {
       [output.fieldApiName]: code,
     });
 
-    return { completed: true, taskId: currentTaskId, code };
+    return { completed: true, taskId: codeTaskId, code };
   };
 }
 
