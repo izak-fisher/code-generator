@@ -1,49 +1,21 @@
 const { generateCode } = require('./codeGenerator');
 
-/**
- * Collects all field values from a workflow's kickoff and completed tasks.
- * Fields from later tasks override earlier ones if api_names collide.
- */
-function collectFieldValues(payload) {
+const TRIGGER_TASK_NAME = 'Initiate Process';
+const CODE_TASK_NAME = 'generate-code';
+const CODE_FIELD_NAME = 'generated-code';
+
+function collectFieldValues(task) {
   const values = {};
-  const workflow = payload.task?.workflow;
-
-  // Kickoff fields (initial form submission)
-  const kickoff = workflow?.kickoff;
-  if (kickoff?.output) {
-    for (const field of kickoff.output) {
-      if (field.api_name && field.value != null && field.value !== '') {
-        values[field.api_name] = field.value;
-      }
+  for (const field of task?.output ?? []) {
+    if (field.name && field.value != null && field.value !== '') {
+      values[field.name] = field.value;
     }
   }
-
-  // Task output fields from all completed tasks in the workflow
-  const tasks = workflow?.tasks || [];
-  for (const task of tasks) {
-    const fields = task.output || [];
-    for (const field of fields) {
-      if (field.api_name && field.value != null && field.value !== '') {
-        values[field.api_name] = field.value;
-      }
-    }
-  }
-
-  // Also check the top-level task in the webhook payload
-  const webhookTask = payload.task;
-  if (webhookTask?.output) {
-    for (const field of webhookTask.output) {
-      if (field.api_name && field.value != null && field.value !== '') {
-        values[field.api_name] = field.value;
-      }
-    }
-  }
-
   return values;
 }
 
 function createWebhookHandler(config, pneumaticClient) {
-  const { trigger, segments, output } = config;
+  const { segments } = config;
 
   return async function handleWebhook(payload) {
     const event = payload.hook?.event;
@@ -51,42 +23,33 @@ function createWebhookHandler(config, pneumaticClient) {
       return { skipped: true, reason: `Ignoring event: ${event}` };
     }
 
-    // Check template match — workflow is nested under task
-    const workflow = payload.task?.workflow;
-    const workflowTemplateId = workflow?.template?.id
-      ?? workflow?.template_id;
-
-    if (trigger.templateId != null && workflowTemplateId !== trigger.templateId) {
-      return { skipped: true, reason: `Template ${workflowTemplateId} does not match ${trigger.templateId}` };
+    const completedTask = payload.task;
+    if (completedTask?.name !== TRIGGER_TASK_NAME) {
+      return { skipped: true, reason: `Completed task "${completedTask?.name}" is not "${TRIGGER_TASK_NAME}"` };
     }
 
-    // Check task match
-    const completedTaskApiName = payload.task?.api_name;
-    if (trigger.taskApiName && completedTaskApiName !== trigger.taskApiName) {
-      return { skipped: true, reason: `Task ${completedTaskApiName} does not match ${trigger.taskApiName}` };
+    const tasks = completedTask.workflow?.tasks ?? [];
+    const codeTask = tasks.find(t =>
+      t.name === CODE_TASK_NAME &&
+      (t.output ?? []).some(f => f.name === CODE_FIELD_NAME)
+    );
+    if (!codeTask) {
+      return { skipped: true, reason: `No "${CODE_TASK_NAME}" task with a "${CODE_FIELD_NAME}" field found in workflow` };
     }
 
-    // Collect all field values from the workflow
-    const fieldValues = collectFieldValues(payload);
+    const fieldValues = collectFieldValues(completedTask);
     console.log('[code-generator] Field values collected:', JSON.stringify(fieldValues, null, 2));
 
-    // Generate the code
     const code = generateCode(segments, fieldValues);
     console.log('[code-generator] Generated code:', code);
 
-    // Find the "Generate Code" task to complete with the generated code
-    const tasks = workflow?.tasks || [];
-    const codeTask = tasks.find(t => t.api_name === output.taskApiName);
-    const codeTaskId = codeTask?.id;
-    if (!codeTaskId) {
-      throw new Error(`Task "${output.taskApiName}" not found in workflow tasks`);
-    }
+    const codeField = codeTask.output.find(f => f.name === CODE_FIELD_NAME);
 
-    await pneumaticClient.completeTask(codeTaskId, {
-      [output.fieldApiName]: code,
+    await pneumaticClient.completeTask(codeTask.id, {
+      [codeField.api_name]: code,
     });
 
-    return { completed: true, taskId: codeTaskId, code };
+    return { completed: true, taskId: codeTask.id, code };
   };
 }
 

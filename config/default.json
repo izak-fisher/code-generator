@@ -7,26 +7,18 @@
     "port": 3000,
     "path": "/webhook"
   },
-  "trigger": {
-    "templateId": 26,
-    "taskApiName": "task-5f78eb"
-  },
-  "output": {
-    "taskApiName": "task-b96b5d",
-    "fieldApiName": "field-0b8929"
-  },
   "segments": [
     {
       "name": "purpose",
       "type": "single",
-      "fieldApiName": "field-e4dae9",
+      "fieldName": "Purpose Code",
       "delimiter": "-",
       "extractIndex": 0
     },
     {
       "name": "project",
       "type": "single",
-      "fieldApiName": "field-31fb02",
+      "fieldName": "Project Code and Name",
       "delimiter": "-",
       "extractIndex": 0
     },
@@ -34,10 +26,10 @@
       "name": "productCategory",
       "type": "composite",
       "entries": [
-        { "codeFieldApiName": "field-4ccb17", "percentFieldApiName": "field-d50954" },
-        { "codeFieldApiName": "field-9fa8e9", "percentFieldApiName": "field-b80b1d" },
-        { "codeFieldApiName": "field-177ac0", "percentFieldApiName": "field-9838bd" },
-        { "codeFieldApiName": "field-e9abc0", "percentFieldApiName": "field-fe1801" }
+        { "codeFieldName": "Product Category 1", "percentFieldName": "Product Category 1 %" },
+        { "codeFieldName": "Product Category 2", "percentFieldName": "Product Category 2 %" },
+        { "codeFieldName": "Product Category 3", "percentFieldName": "Product Category 3 %" },
+        { "codeFieldName": "Product Category 4", "percentFieldName": "Product Category 4 %" }
       ],
       "delimiter": "-",
       "extractIndex": 0
@@ -46,10 +38,10 @@
       "name": "mediaType",
       "type": "composite",
       "entries": [
-        { "fixedCode": "NPD", "percentFieldApiName": "field-6cdbcf" },
-        { "fixedCode": "PD", "percentFieldApiName": "field-e35aa5" },
-        { "fixedCode": "NPND", "percentFieldApiName": "field-3b5990" },
-        { "fixedCode": "PND", "percentFieldApiName": "field-29a837" }
+        { "fixedCode": "NPD", "percentFieldName": "Non Production Digital %" },
+        { "fixedCode": "PD", "percentFieldName": "Production Digital %" },
+        { "fixedCode": "NPND", "percentFieldName": "Non-Production Non-Digital %" },
+        { "fixedCode": "PND", "percentFieldName": "Production Non-Digital %" }
       ],
       "delimiter": "-",
       "extractIndex": 0

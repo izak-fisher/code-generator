@@ -33,5 +33,4 @@ app.listen(port, () => {
   console.log(`[code-generator] Listening on port ${port}`);
   console.log(`[code-generator] Webhook path: ${config.webhook.path}`);
   console.log(`[code-generator] Pneumatic API: ${config.pneumatic.apiUrl}`);
-  console.log(`[code-generator] Watching template: ${config.trigger.templateId ?? 'any'}, task: ${config.trigger.taskApiName ?? 'any'}`);
 });

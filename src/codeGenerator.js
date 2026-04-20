@@ -3,6 +3,10 @@
  *
  * Example output: CC-PC004-UP25SY25GP50-NPD75PD25
  *
+ * Field values are looked up by the user-facing field name (e.g. "Purpose Code"),
+ * not the template-specific api_name. Segments that produce no value are skipped,
+ * so a config can include optional segments that only appear in some templates.
+ *
  * Segment types:
  *   "single"    — extracts a code from one field value (e.g. "CC-Content creation" → "CC")
  *   "composite" — concatenates code+percent pairs (e.g. UP25SY25GP50)
@@ -16,7 +20,7 @@ function extractCode(value, delimiter = '-', extractIndex = 0) {
 
 function buildSegment(segment, fieldValues) {
   if (segment.type === 'single') {
-    const raw = fieldValues[segment.fieldApiName];
+    const raw = fieldValues[segment.fieldName];
     if (raw == null) return null;
     return extractCode(raw, segment.delimiter, segment.extractIndex);
   }
@@ -24,14 +28,14 @@ function buildSegment(segment, fieldValues) {
   if (segment.type === 'composite') {
     const parts = [];
     for (const entry of segment.entries) {
-      const pctRaw = fieldValues[entry.percentFieldApiName];
+      const pctRaw = fieldValues[entry.percentFieldName];
       if (pctRaw == null) continue;
 
       let code;
       if (entry.fixedCode) {
         code = entry.fixedCode;
       } else {
-        const codeRaw = fieldValues[entry.codeFieldApiName];
+        const codeRaw = fieldValues[entry.codeFieldName];
         if (codeRaw == null) continue;
         code = extractCode(codeRaw, segment.delimiter, segment.extractIndex);
       }
@@ -53,10 +57,7 @@ function generateCode(segments, fieldValues) {
 
   for (const segment of segments) {
     const value = buildSegment(segment, fieldValues);
-    if (value == null) {
-      throw new Error(`Segment "${segment.name}" produced no value — check field mappings and input data`);
-    }
-    codeParts.push(value);
+    if (value != null) codeParts.push(value);
   }
 
   return codeParts.join('-');

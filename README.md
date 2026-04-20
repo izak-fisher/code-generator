@@ -2,7 +2,19 @@
 
 A webhook service that automatically generates structured project codes from [Pneumatic](https://pneumatic.app) workflow data.
 
-When a task is completed in Pneumatic, this service receives the webhook, extracts field values from the workflow, assembles a multi-segment code (e.g. `CC-PC004-UP25SY25GP50-NPD75PD25`), and writes it back to the next task in the workflow.
+When the **Initiate Process** task is completed in any Pneumatic workflow, this service receives the webhook, reads field values from that task by their user-facing names, assembles a multi-segment code (e.g. `CC-PC004-UP25SY25GP50-NPD75PD25`), and writes it back to a downstream task named `generate-code`.
+
+## How it works
+
+The handler is template-agnostic — it doesn't care about template IDs or `api_name` values that change between templates. Instead it looks at user-facing names:
+
+1. A `task_completed` webhook arrives.
+2. If the completed task is named **Initiate Process**, the handler proceeds.
+3. It searches the workflow for a task named **generate-code** that has an output field named **generated-code**.
+4. It reads field values from the completed task's output, looking them up by the field's display name (e.g. `"Purpose Code"`, `"Product Category 1"`, `"Product Category 1 %"`).
+5. It assembles the code from the configured segments and writes it back to the `generated-code` field on the `generate-code` task.
+
+Adding code generation to a new template requires no code changes: just include an `Initiate Process` task that collects the input fields and a downstream `generate-code` task with a `generated-code` field.
 
 ## Requirements
 
@@ -12,25 +24,16 @@ When a task is completed in Pneumatic, this service receives the webhook, extrac
 ## Quick Start
 
 ```bash
-# Install dependencies
 bun install
-
-# Copy and edit the environment file
 cp .env.example .env
-
-# Run the server
 bun start
 ```
 
-The server starts on port 3000 by default and logs the webhook path and API URL on startup.
-
 ## Configuration
 
-The service is configured through two layers: a JSON config file and environment variables.
+Two layers: a JSON config file and environment variables.
 
 ### Environment Variables
-
-Set these in your `.env` file or export them directly:
 
 | Variable | Description | Default |
 |---|---|---|
@@ -43,40 +46,21 @@ Environment variables override the corresponding values in the JSON config file.
 
 ### JSON Config File
 
-The main config file is at `config/default.json`. It defines the webhook behavior and code generation rules.
+`config/default.json` defines the webhook port/path and the segment rules.
 
 ```jsonc
 {
-  "pneumatic": {
-    "apiUrl": "https://your-instance.pneumatic.app/api/v2",
-    "apiKey": "your-api-key-here"
-  },
-  "webhook": {
-    "port": 3000,
-    "path": "/webhook"          // URL path the server listens on
-  },
-  "trigger": {
-    "templateId": null,          // Pneumatic template ID to match, or null for any
-    "taskApiName": "task-1"      // Task api_name that triggers code generation
-  },
-  "output": {
-    "fieldApiName": "field-generated-code"  // Field where the generated code is written
-  },
-  "segments": [ ... ]           // Code generation rules (see below)
+  "pneumatic": { "apiUrl": "...", "apiKey": "..." },
+  "webhook":   { "port": 3000, "path": "/webhook" },
+  "segments":  [ ... ]
 }
 ```
 
-**`trigger`** controls which webhook events are processed:
-- `templateId` — only process workflows from this template. Set to `null` to accept any template.
-- `taskApiName` — only trigger when this specific task is completed. Set to `null` to accept any task.
-
-**`output.fieldApiName`** — the api_name of the field on the *next* task where the generated code will be written.
+There is no `trigger` or `output` section — detection happens entirely by task and field name (see [How it works](#how-it-works)).
 
 ### Configuring Segments
 
-The `segments` array defines how the project code is built. Each segment produces one part of the final code, and they are joined with `-`.
-
-There are two segment types:
+The `segments` array defines how the project code is built. Each segment produces one part of the final code, and they are joined with `-`. Segments that have no input data in the current workflow are silently skipped, so a config can include segments that only appear in some templates.
 
 #### Single Segment
 
@@ -86,7 +70,7 @@ Extracts a code from a single field value by splitting on a delimiter.
 {
   "name": "purpose",
   "type": "single",
-  "fieldApiName": "field-purpose-code",
+  "fieldName": "Purpose Code",
   "delimiter": "-",
   "extractIndex": 0
 }
@@ -96,7 +80,7 @@ If the field value is `"CC-Content creation"`, this splits on `-` and takes inde
 
 | Property | Description |
 |---|---|
-| `fieldApiName` | The Pneumatic field api_name to read from |
+| `fieldName` | The user-facing field name (the `name` shown in Pneumatic, not the api_name) |
 | `delimiter` | Character to split the field value on |
 | `extractIndex` | Which part to use after splitting (0-based) |
 
@@ -109,16 +93,19 @@ Concatenates multiple code + percentage pairs into one segment.
   "name": "productCategory",
   "type": "composite",
   "entries": [
-    { "codeFieldApiName": "field-product-cat-1", "percentFieldApiName": "field-product-pct-1" },
-    { "codeFieldApiName": "field-product-cat-2", "percentFieldApiName": "field-product-pct-2" },
-    { "codeFieldApiName": "field-product-cat-3", "percentFieldApiName": "field-product-pct-3" }
+    { "codeFieldName": "Product Category 1", "percentFieldName": "Product Category 1 %" },
+    { "codeFieldName": "Product Category 2", "percentFieldName": "Product Category 2 %" }
   ],
   "delimiter": "-",
   "extractIndex": 0
 }
 ```
 
-Each entry reads a code field and a percentage field. The code is extracted using the same `delimiter`/`extractIndex` logic as single segments. Entries with null values or 0% are skipped.
+Each entry reads a code field and a percentage field. The code is extracted using the same `delimiter`/`extractIndex` logic as single segments. Entries with null values or 0% are skipped. Entries can also use `fixedCode` instead of `codeFieldName` when the code is constant (e.g. media types like `NPD`, `PD`):
+
+```json
+{ "fixedCode": "NPD", "percentFieldName": "Non Production Digital %" }
+```
 
 Example: if the fields contain `UP-Upright Piano` (25%), `SY-SY&DE` (25%), `GP-Grand Piano` (50%), the segment produces `UP25SY25GP50`.
 
@@ -126,20 +113,18 @@ Example: if the fields contain `UP-Upright Piano` (25%), `SY-SY&DE` (25%), `GP-G
 
 Given this field data from a workflow:
 
-| Field | Value |
+| Field name | Value |
 |---|---|
-| `field-purpose-code` | `CC-Content creation` |
-| `field-project-code` | `PC004-750-Advertising` |
-| `field-product-cat-1` | `UP-Upright Piano` |
-| `field-product-pct-1` | `25` |
-| `field-product-cat-2` | `SY-SY&DE` |
-| `field-product-pct-2` | `25` |
-| `field-product-cat-3` | `GP-Grand Piano` |
-| `field-product-pct-3` | `50` |
-| `field-ad-code-1` | `NPD` |
-| `field-ad-pct-1` | `75` |
-| `field-ad-code-2` | `PD` |
-| `field-ad-pct-2` | `25` |
+| `Purpose Code` | `CC-Content creation` |
+| `Project Code and Name` | `PC004-Advertising` |
+| `Product Category 1` | `UP-Upright Piano` |
+| `Product Category 1 %` | `25` |
+| `Product Category 2` | `SY-SY&DE` |
+| `Product Category 2 %` | `25` |
+| `Product Category 3` | `GP-Grand Piano` |
+| `Product Category 3 %` | `50` |
+| `Non Production Digital %` | `75` |
+| `Production Digital %` | `25` |
 
 The generated code is: **`CC-PC004-UP25SY25GP50-NPD75PD25`**
 
@@ -148,17 +133,16 @@ The generated code is: **`CC-PC004-UP25SY25GP50-NPD75PD25`**
 1. In Pneumatic, go to your workflow template settings.
 2. Add a webhook that points to your server: `http://your-server:3000/webhook`
 3. Set it to fire on the `task_completed` event.
-4. Update `config/default.json` with the correct `trigger.templateId` and `trigger.taskApiName` for the task that collects the code generation data.
-5. Ensure the *next* task in the workflow has a field with the api_name matching `output.fieldApiName` (default: `field-generated-code`).
+4. Make sure the template has:
+   - A task named **Initiate Process** that collects the input fields (with display names matching your `segments` config).
+   - A downstream task named **generate-code** with an output field named **generated-code**.
+
+No template-specific configuration is required on the service side.
 
 ## Running with Docker
 
 ```bash
-# Build and run
 docker-compose up --build
-
-# Or run detached
-docker-compose up -d --build
 ```
 
 The Docker setup reads your `.env` file and mounts `config/` as a read-only volume, so you can update the config without rebuilding the image.
