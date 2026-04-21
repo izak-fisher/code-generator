@@ -1,8 +1,7 @@
 services:
   code-generator:
     build: .
-    ports:
-      - "${WEBHOOK_PORT:-8001}:${WEBHOOK_PORT:-8001}"
+    network_mode: host
     env_file:
       - .env
     volumes:

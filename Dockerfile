@@ -8,6 +8,6 @@ RUN bun install --production
 COPY src/ src/
 COPY config/ config/
 
-EXPOSE 3000
+EXPOSE 8002
 
 CMD ["bun", "src/index.js"]

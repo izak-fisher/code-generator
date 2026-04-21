@@ -4,7 +4,7 @@
     "apiKey": "your-api-key-here"
   },
   "webhook": {
-    "port": 3000,
+    "port": 8002,
     "path": "/webhook"
   },
   "segments": [
@@ -40,8 +40,8 @@
       "entries": [
         { "fixedCode": "NPD", "percentFieldName": "Non Production Digital %" },
         { "fixedCode": "PD", "percentFieldName": "Production Digital %" },
-        { "fixedCode": "NPND", "percentFieldName": "Non-Production Non-Digital %" },
-        { "fixedCode": "PND", "percentFieldName": "Production Non-Digital %" }
+        { "fixedCode": "NPND", "percentFieldName": "Non Production Non Digital %" },
+        { "fixedCode": "PND", "percentFieldName": "Production Non Digital %" }
       ],
       "delimiter": "-",
       "extractIndex": 0

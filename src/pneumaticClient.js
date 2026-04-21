@@ -23,16 +23,17 @@ class PneumaticClient {
   }
 
   async getTask(taskId) {
-    return this.request('GET', `/tasks/${taskId}`);
+    return this.request('GET', `/v2/tasks/${taskId}`);
   }
 
   async getWorkflow(workflowId) {
     return this.request('GET', `/workflows/${workflowId}`);
   }
 
-  async completeTask(taskId, outputFields = {}) {
-    return this.request('POST', `/tasks/${taskId}/complete`, {
-      output: outputFields,
+  async completeTask(workflowId, taskId, output = {}) {
+    return this.request('POST', `/workflows/${workflowId}/task-complete`, {
+      task_id: taskId,
+      output,
     });
   }
 }
