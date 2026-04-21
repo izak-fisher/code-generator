@@ -1,9 +1,16 @@
 services:
   code-generator:
     build: .
-    network_mode: host
+    container_name: code-generator
     env_file:
       - .env
     volumes:
       - ./config:/app/config:ro
+    networks:
+      - pneumatic
     restart: unless-stopped
+
+networks:
+  pneumatic:
+    name: ${PNEUMATIC_NETWORK:-pneumatic_pneumatic}
+    external: true
