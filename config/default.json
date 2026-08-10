@@ -1,6 +1,6 @@
 {
   "pneumatic": {
-    "apiUrl": "https://your-instance.pneumatic.app/api/v2",
+    "apiUrl": "https://your-instance.pneumatic.app:8001",
     "apiKey": "your-api-key-here"
   },
   "webhook": {
