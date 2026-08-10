@@ -30,11 +30,18 @@ class PneumaticClient {
     return this.request('GET', `/workflows/${workflowId}`);
   }
 
+  /**
+   * Complete a task.
+   *
+   * `POST /workflows/{id}/task-complete` was withdrawn and has returned 404 since
+   * 2026-07-29 (it still worked on 2026-07-27; the /v2/ and /v3/ spellings of that
+   * path 404 as well). `POST /v2/tasks/{id}/complete` is the supported endpoint.
+   *
+   * `workflowId` is no longer part of the request, but stays in the signature because
+   * callers log it and it costs nothing to keep the call sites unchanged.
+   */
   async completeTask(workflowId, taskId, output = {}) {
-    return this.request('POST', `/workflows/${workflowId}/task-complete`, {
-      task_id: taskId,
-      output,
-    });
+    return this.request('POST', `/v2/tasks/${taskId}/complete`, { output });
   }
 }
 

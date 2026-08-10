@@ -38,8 +38,8 @@ Two layers: a JSON config file and environment variables.
 | Variable | Description | Default |
 |---|---|---|
 | `PNEUMATIC_API_KEY` | **Required.** Your Pneumatic API key (Bearer token) | — |
-| `PNEUMATIC_API_URL` | Pneumatic API base URL | `https://your-instance.pneumatic.app/api/v2` |
-| `WEBHOOK_PORT` | Port the server listens on | `3000` |
+| `PNEUMATIC_API_URL` | Pneumatic API base URL, **no version suffix** — the client adds `/v2` per endpoint | `https://your-instance.pneumatic.app:8001` |
+| `WEBHOOK_PORT` | Port the server listens on | `8002` |
 | `CONFIG_PATH` | Path to a custom JSON config file | `config/default.json` |
 
 Environment variables override the corresponding values in the JSON config file.
