@@ -35,15 +35,17 @@ src/
   config.js           # Loads config/default.json with env overrides
   codeGenerator.js    # Core code generation (single + composite segments)
   webhookHandler.js   # Webhook filtering, field collection, orchestration
-  pneumaticClient.js  # Pneumatic API client (task completion)
+  pneumaticClient.js  # Pneumatic API client (tasks, workflows, events, comments)
   codeGenerator.test.js  # Tests for code generation logic
+  webhookHandler.test.js # Tests for the task_returned rescue path
 config/
   default.json        # Segment definitions, field mappings, API settings
 ```
 
 ## Key concepts
 
-- **Trigger:** Hardcoded in `webhookHandler.js`. Fires when `payload.task.name === 'Initiate Process'` and the workflow contains a task named `generate-code` with a field named `generated-code`. No `templateId` or `taskApiName` filter in config.
+- **Trigger (`task_completed`):** Hardcoded in `webhookHandler.js`. Fires when `payload.task.name === 'Initiate Process'` and the workflow contains a task named `generate-code` with a field named `generated-code`. No `templateId` or `taskApiName` filter in config.
+- **Rescue (`task_returned`):** `generate-code` is an automatic step — nothing but this service completes it — so a workflow returned *onto* it stops dead. On `task_returned` the service checks whether `generate-code` is the active task and, if so, returns the workflow one step further to `Initiate Process`, then posts a comment explaining why. Both return paths are covered: `POST /v2/tasks/{id}/revert` (performer "send back", previous task, comment mandatory) and `POST /workflows/{id}/return-to` (owner picks a step, **no comment field**). The reason text is not in the webhook payload — it is a `TASK_REVERT` (type 4) workflow event, read back via `GET /workflows/{id}/events`; for the `return-to` path there is legitimately no reason and the comment says so. The service's own return fires another `task_returned`, but by then `generate-code` is `pending`, so the guard stops it; the workflow is re-read before acting because a return out of parallel branches fires one webhook per returned-from task.
 - **Segments:** Code is built from ordered segments joined by `-`. Two types:
   - `single` — extracts a code from one field value using a delimiter + index
   - `composite` — concatenates code+percentage pairs from multiple fields (each entry can use `codeFieldName` or a `fixedCode`)

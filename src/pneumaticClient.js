@@ -43,6 +43,31 @@ class PneumaticClient {
   async completeTask(workflowId, taskId, output = {}) {
     return this.request('POST', `/v2/tasks/${taskId}/complete`, { output });
   }
+
+  /**
+   * Send a workflow back to an earlier task. Owner-only; the service's key
+   * belongs to an account owner who is also a template owner. Answers 204
+   * with an empty body, so `request` returns null.
+   */
+  async returnTo(workflowId, taskId) {
+    return this.request('POST', `/workflows/${workflowId}/return-to`, { task: taskId });
+  }
+
+  /**
+   * Workflow event log, newest first. Used to recover the reason text of a
+   * revert, which the task_returned webhook payload does not carry.
+   */
+  async getEvents(workflowId, limit = 20) {
+    return this.request('GET', `/workflows/${workflowId}/events?limit=${limit}`);
+  }
+
+  /**
+   * Add a comment to a workflow. The backend attaches it to the workflow's
+   * currently active task, so call this AFTER returning the workflow.
+   */
+  async addComment(workflowId, text) {
+    return this.request('POST', `/workflows/${workflowId}/comment`, { text });
+  }
 }
 
 module.exports = { PneumaticClient };

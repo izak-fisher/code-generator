@@ -1,2 +1,6 @@
 node_modules
 .env
+
+# captured webhook payloads - contain live client workflow data
+last-webhook.json
+*-webhook.json
