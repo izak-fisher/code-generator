@@ -8,7 +8,10 @@ const client = new PneumaticClient(config.pneumatic.apiUrl, config.pneumatic.api
 const handleWebhook = createWebhookHandler(config, client);
 
 const app = express();
-app.use(express.json());
+// Pneumatic posts the whole task + workflow; on the 54-step Credit Note templates that
+// exceeds body-parser's 100kb default and the webhook is rejected with 413 before the
+// handler ever runs (prod wf 1174, 2026-10-22: PayloadTooLargeError, step stalled 4 days).
+app.use(express.json({ limit: '10mb' }));
 
 // Health check
 app.get('/health', (_req, res) => {
